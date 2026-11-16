@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import shutil
 import time
 from pathlib import Path
@@ -8,6 +9,13 @@ from .process import run
 
 ROOT = Path(__file__).resolve().parents[1]
 RESUME_ATTEMPTS = 4
+
+
+def _blender_version(path):
+    match = re.search(r'(?i)blender[^0-9]*(\d+)(?:\.(\d+))?(?:\.(\d+))?', str(path))
+    if not match:
+        return None
+    return tuple(int(part or 0) for part in match.groups())
 
 
 def blender_binary():
@@ -22,8 +30,13 @@ def blender_binary():
         *Path('/Applications').glob('Blender*.app/Contents/MacOS/Blender'),
         *Path('/opt').glob('blender*/blender'),
     ]
-    if candidates:
-        return str(sorted(candidates, reverse=True)[0])
+    supported = []
+    for path in candidates:
+        version = _blender_version(path)
+        if version and version >= (5, 1):
+            supported.append((version, path))
+    if supported:
+        return str(max(supported, key=lambda item: item[0])[1])
     raise ValueError('Blender is missing. Install Blender 5.1 or set BLENDER_PATH.')
 
 
