@@ -30,13 +30,20 @@ def blender_binary():
         *Path('/Applications').glob('Blender*.app/Contents/MacOS/Blender'),
         *Path('/opt').glob('blender*/blender'),
     ]
-    supported = []
+    supported, unversioned = [], []
     for path in candidates:
         version = _blender_version(path)
-        if version and version >= (5, 1):
+        if version is None:
+            # The default macOS install is /Applications/Blender.app and Linux
+            # tarballs often unpack to /opt/blender/, so the path carries no
+            # version. Keep accepting those, as before version-aware selection.
+            unversioned.append(path)
+        elif version >= (5, 1):
             supported.append((version, path))
     if supported:
         return str(max(supported, key=lambda item: item[0])[1])
+    if unversioned:
+        return str(unversioned[0])
     raise ValueError('Blender is missing. Install Blender 5.1 or set BLENDER_PATH.')
 
 
